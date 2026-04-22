@@ -1,0 +1,132 @@
+version: "3.8"
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: wellnest-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASS}
+      MONGO_INITDB_DATABASE: wellnest
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - wellnest-net
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  auth-service:
+    build: ./services/auth-service
+    container_name: wellnest-auth
+    restart: unless-stopped
+    environment:
+      PORT: 3001
+      NODE_ENV: production
+      MONGODB_URI: ${MONGODB_URI}
+      JWT_SECRET: ${JWT_SECRET}
+      FRONTEND_URL: ${FRONTEND_URL}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - wellnest-net
+    ports:
+      - "3001:3001"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  assessment-service:
+    build: ./services/assessment-service
+    container_name: wellnest-assessment
+    restart: unless-stopped
+    environment:
+      PORT: 3002
+      NODE_ENV: production
+      MONGODB_URI: ${MONGODB_URI}
+      JWT_SECRET: ${JWT_SECRET}
+      AUTH_SERVICE_URL: http://auth-service:3001
+      RUN_SEED: "true"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+    networks:
+      - wellnest-net
+    ports:
+      - "3002:3002"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3002/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  therapist-service:
+    build: ./services/therapist-service
+    container_name: wellnest-therapist
+    restart: unless-stopped
+    environment:
+      PORT: 3003
+      NODE_ENV: production
+      MONGODB_URI: ${MONGODB_URI}
+      JWT_SECRET: ${JWT_SECRET}
+      AUTH_SERVICE_URL: http://auth-service:3001
+      ASSESSMENT_SERVICE_URL: http://assessment-service:3002
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+      assessment-service:
+        condition: service_healthy
+    networks:
+      - wellnest-net
+    ports:
+      - "3003:3003"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3003/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  frontend:
+    build:
+      context: ./services/frontend
+      args:
+        VITE_AUTH_URL: http://localhost:3001
+        VITE_ASSESSMENT_URL: http://localhost:3002
+        VITE_THERAPIST_URL: http://localhost:3003
+    container_name: wellnest-frontend
+    restart: unless-stopped
+    depends_on:
+      - auth-service
+      - assessment-service
+      - therapist-service
+    networks:
+      - wellnest-net
+    ports:
+      - "80:80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  wellnest-net:
+    driver: bridge
+
+volumes:
+  mongodb_data:
