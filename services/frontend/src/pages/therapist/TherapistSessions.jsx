@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Search, FileText, CheckCircle, Brain, SmilePlus } from 'lucide-react';
+import { X, Search, FileText, CheckCircle, Brain, SmilePlus ,  Loader2 } from 'lucide-react';
 import Sidebar from '../../components/shared/Sidebar';
 import api from '../../lib/axios';
 import SeverityBadge from '../../components/shared/SeverityBadge';
