@@ -1,0 +1,126 @@
+# ─────────────────────────────────────────────────────────────
+# WellNest — Assessment Service Deployment
+# Environment: dev
+# Namespace: wellnest-dev
+# Phase: 2 — Kubernetes Manifests
+# ─────────────────────────────────────────────────────────────
+# ─── REPLACE BEFORE APPLYING ─────────────────────────────────
+# DOCKER_USERNAME → your DockerHub username
+# ─────────────────────────────────────────────────────────────
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: assessment-service
+  namespace: wellnest-dev
+  labels:
+    app: assessment-service
+    app.kubernetes.io/part-of: wellnest
+    app.kubernetes.io/managed-by: kubectl
+    environment: dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: assessment-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: assessment-service
+        environment: dev
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+
+      containers:
+        - name: assessment-service
+          image: docker.io/DOCKER_USERNAME/wellnest-assessment:dev
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3002
+              name: http
+              protocol: TCP
+
+          env:
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: wellnest-config
+                  key: ASSESSMENT_SERVICE_PORT
+            - name: NODE_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: wellnest-config
+                  key: NODE_ENV
+            - name: FRONTEND_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: wellnest-config
+                  key: FRONTEND_URL
+            - name: JWT_EXPIRY
+              valueFrom:
+                configMapKeyRef:
+                  name: wellnest-config
+                  key: JWT_EXPIRY
+            - name: AUTH_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: wellnest-config
+                  key: AUTH_SERVICE_URL
+            - name: RUN_SEED
+              valueFrom:
+                configMapKeyRef:
+                  name: wellnest-config
+                  key: RUN_SEED
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: wellnest-secrets
+                  key: MONGODB_URI
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: wellnest-secrets
+                  key: JWT_SECRET
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "300m"
+              memory: "256Mi"
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3002
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3002
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop: ["ALL"]

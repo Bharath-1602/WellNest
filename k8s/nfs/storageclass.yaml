@@ -1,0 +1,26 @@
+# ─────────────────────────────────────────────────────────────
+# WellNest — NFS StorageClass for dynamic persistent volume provisioning
+# Environment: both
+# Namespace: cluster-scoped (StorageClass is not namespaced)
+# Phase: 2 — Kubernetes Manifests
+# ─────────────────────────────────────────────────────────────
+# Check if already exists: kubectl get storageclass nfs-client
+# Skip applying if it already exists on the cluster.
+# reclaimPolicy: Retain — volumes preserved after PVC deletion
+# pathPattern — organizes NFS subdirectories by namespace/pvc-name
+# ─────────────────────────────────────────────────────────────
+
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: nfs-client
+  labels:
+    app.kubernetes.io/part-of: wellnest
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: k8s-sigs.io/nfs-subdir-external-provisioner
+parameters:
+  onDelete: "retain"
+  pathPattern: "${.PVC.namespace}/${.PVC.name}"
+reclaimPolicy: Retain
+volumeBindingMode: Immediate

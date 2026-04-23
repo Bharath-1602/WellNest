@@ -1,0 +1,54 @@
+# ─────────────────────────────────────────────────────────────
+# WellNest — NFS Client Provisioner Deployment
+# Environment: both
+# Namespace: kube-system
+# Phase: 2 — Kubernetes Manifests
+# ─────────────────────────────────────────────────────────────
+# ─── REPLACE BEFORE APPLYING ─────────────────────────────────
+# NFS_SERVER_IP   → your NFS server IP
+# ─────────────────────────────────────────────────────────────
+# Deploys the NFS subdir external provisioner that watches for
+# PVCs using storageClassName: nfs-client and automatically
+# provisions subdirectories on the NFS server.
+# Strategy: Recreate — only one provisioner instance at a time.
+# ─────────────────────────────────────────────────────────────
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nfs-client-provisioner
+  namespace: kube-system
+  labels:
+    app: nfs-client-provisioner
+    app.kubernetes.io/part-of: wellnest
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nfs-client-provisioner
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: nfs-client-provisioner
+    spec:
+      serviceAccountName: nfs-client-provisioner
+      containers:
+        - name: nfs-client-provisioner
+          image: registry.k8s.io/sig-storage/nfs-subdir-external-provisioner:v4.0.2
+          volumeMounts:
+            - name: nfs-client-root
+              mountPath: /persistentvolumes
+          env:
+            - name: PROVISIONER_NAME
+              value: k8s-sigs.io/nfs-subdir-external-provisioner
+            - name: NFS_SERVER
+              value: "NFS_SERVER_IP"
+            - name: NFS_PATH
+              value: "/srv/nfs/kubedata"
+      volumes:
+        - name: nfs-client-root
+          nfs:
+            server: "NFS_SERVER_IP"
+            path: "/srv/nfs/kubedata"

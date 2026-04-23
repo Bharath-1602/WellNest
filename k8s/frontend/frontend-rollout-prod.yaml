@@ -1,0 +1,130 @@
+# ─────────────────────────────────────────────────────────────
+# WellNest — Frontend Argo Rollout (Blue-Green) + AnalysisTemplate
+# Environment: prod
+# Namespace: wellnest-prod
+# Phase: 2 — Kubernetes Manifests
+# ─────────────────────────────────────────────────────────────
+# ─── REPLACE BEFORE APPLYING ─────────────────────────────────
+# DOCKER_USERNAME → your DockerHub username
+# ─────────────────────────────────────────────────────────────
+# Production: 2 replicas, higher resource limits.
+# autoPromotionEnabled: false — always manual promotion in prod.
+# ─────────────────────────────────────────────────────────────
+
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: frontend
+  namespace: wellnest-prod
+  labels:
+    app: frontend
+    app.kubernetes.io/part-of: wellnest
+    app.kubernetes.io/managed-by: kubectl
+    environment: prod
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+        environment: prod
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        fsGroup: 101
+
+      containers:
+        - name: frontend
+          image: docker.io/DOCKER_USERNAME/wellnest-frontend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+              name: http
+              protocol: TCP
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "400m"
+              memory: "256Mi"
+
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+              add: ["NET_BIND_SERVICE"]
+
+  strategy:
+    blueGreen:
+      activeService: frontend-active
+      previewService: frontend-preview
+      autoPromotionEnabled: false
+      scaleDownDelaySeconds: 30
+      previewReplicaCount: 1
+
+---
+
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: frontend-health-check
+  namespace: wellnest-prod
+  labels:
+    app: frontend
+    app.kubernetes.io/part-of: wellnest
+    environment: prod
+spec:
+  metrics:
+    - name: health-check
+      interval: 10s
+      count: 3
+      successCondition: result == "ok"
+      failureLimit: 1
+      provider:
+        job:
+          spec:
+            template:
+              spec:
+                restartPolicy: Never
+                containers:
+                  - name: health-checker
+                    image: curlimages/curl:latest
+                    command:
+                      - sh
+                      - -c
+                      - |
+                        STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+                          http://frontend-preview.wellnest-prod.svc.cluster.local:80)
+                        if [ "$STATUS" = "200" ]; then
+                          echo "ok"
+                        else
+                          echo "fail"
+                          exit 1
+                        fi

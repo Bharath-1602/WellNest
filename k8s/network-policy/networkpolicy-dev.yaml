@@ -1,0 +1,113 @@
+# ─────────────────────────────────────────────────────────────
+# WellNest — Network Policies (MongoDB access control)
+# Environment: dev
+# Namespace: wellnest-dev
+# Phase: 2 — Kubernetes Manifests
+# ─────────────────────────────────────────────────────────────
+# Policy 1: MongoDB ingress — only backends + mongo peers allowed
+# Policy 2: Frontend egress — can reach backends but NOT MongoDB
+# ─────────────────────────────────────────────────────────────
+
+# Controls WHO can send traffic TO MongoDB pods.
+# Only backend services, other MongoDB pods, and the init job
+# are allowed. Frontend is NOT in this allow list.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mongodb-ingress-policy
+  namespace: wellnest-dev
+  labels:
+    app.kubernetes.io/part-of: wellnest
+    app.kubernetes.io/managed-by: kubectl
+    environment: dev
+spec:
+  podSelector:
+    matchLabels:
+      app: mongodb
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: auth-service
+      ports:
+        - protocol: TCP
+          port: 27017
+    - from:
+        - podSelector:
+            matchLabels:
+              app: assessment-service
+      ports:
+        - protocol: TCP
+          port: 27017
+    - from:
+        - podSelector:
+            matchLabels:
+              app: therapist-service
+      ports:
+        - protocol: TCP
+          port: 27017
+    - from:
+        - podSelector:
+            matchLabels:
+              app: mongodb
+      ports:
+        - protocol: TCP
+          port: 27017
+    - from:
+        - podSelector:
+            matchLabels:
+              app: mongodb-init
+      ports:
+        - protocol: TCP
+          port: 27017
+
+---
+
+# Controls WHERE frontend pods can SEND traffic.
+# Frontend can reach backend services but NOT MongoDB.
+# DNS (port 53) is allowed so service discovery works.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-egress-policy
+  namespace: wellnest-dev
+  labels:
+    app.kubernetes.io/part-of: wellnest
+    app.kubernetes.io/managed-by: kubectl
+    environment: dev
+spec:
+  podSelector:
+    matchLabels:
+      app: frontend
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: auth-service
+      ports:
+        - protocol: TCP
+          port: 3001
+    - to:
+        - podSelector:
+            matchLabels:
+              app: assessment-service
+      ports:
+        - protocol: TCP
+          port: 3002
+    - to:
+        - podSelector:
+            matchLabels:
+              app: therapist-service
+      ports:
+        - protocol: TCP
+          port: 3003
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53

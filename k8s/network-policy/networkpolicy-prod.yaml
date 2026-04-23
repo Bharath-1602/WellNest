@@ -1,0 +1,104 @@
+# ─────────────────────────────────────────────────────────────
+# WellNest — Network Policies (MongoDB access control)
+# Environment: prod
+# Namespace: wellnest-prod
+# Phase: 2 — Kubernetes Manifests
+# ─────────────────────────────────────────────────────────────
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mongodb-ingress-policy
+  namespace: wellnest-prod
+  labels:
+    app.kubernetes.io/part-of: wellnest
+    app.kubernetes.io/managed-by: kubectl
+    environment: prod
+spec:
+  podSelector:
+    matchLabels:
+      app: mongodb
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: auth-service
+      ports:
+        - protocol: TCP
+          port: 27017
+    - from:
+        - podSelector:
+            matchLabels:
+              app: assessment-service
+      ports:
+        - protocol: TCP
+          port: 27017
+    - from:
+        - podSelector:
+            matchLabels:
+              app: therapist-service
+      ports:
+        - protocol: TCP
+          port: 27017
+    - from:
+        - podSelector:
+            matchLabels:
+              app: mongodb
+      ports:
+        - protocol: TCP
+          port: 27017
+    - from:
+        - podSelector:
+            matchLabels:
+              app: mongodb-init
+      ports:
+        - protocol: TCP
+          port: 27017
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-egress-policy
+  namespace: wellnest-prod
+  labels:
+    app.kubernetes.io/part-of: wellnest
+    app.kubernetes.io/managed-by: kubectl
+    environment: prod
+spec:
+  podSelector:
+    matchLabels:
+      app: frontend
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: auth-service
+      ports:
+        - protocol: TCP
+          port: 3001
+    - to:
+        - podSelector:
+            matchLabels:
+              app: assessment-service
+      ports:
+        - protocol: TCP
+          port: 3002
+    - to:
+        - podSelector:
+            matchLabels:
+              app: therapist-service
+      ports:
+        - protocol: TCP
+          port: 3003
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53

@@ -1,0 +1,50 @@
+# ─────────────────────────────────────────────────────────────
+# WellNest — HPA for Frontend Rollout
+# Environment: prod
+# Namespace: wellnest-prod
+# Phase: 2 — Kubernetes Manifests
+# ─────────────────────────────────────────────────────────────
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: frontend-hpa
+  namespace: wellnest-prod
+  labels:
+    app: frontend
+    app.kubernetes.io/part-of: wellnest
+    app.kubernetes.io/managed-by: kubectl
+    environment: prod
+spec:
+  scaleTargetRef:
+    apiVersion: argoproj.io/v1alpha1
+    kind: Rollout
+    name: frontend
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 120
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 120
