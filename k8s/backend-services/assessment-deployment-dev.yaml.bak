@@ -1,7 +1,7 @@
 # ─────────────────────────────────────────────────────────────
 # WellNest — Assessment Service Deployment
-# Environment: prod
-# Namespace: wellnest-prod
+# Environment: dev
+# Namespace: wellnest-dev
 # Phase: 2 — Kubernetes Manifests
 # ─────────────────────────────────────────────────────────────
 # ─── REPLACE BEFORE APPLYING ─────────────────────────────────
@@ -12,14 +12,14 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: assessment-service
-  namespace: wellnest-prod
+  namespace: wellnest-dev
   labels:
     app: assessment-service
     app.kubernetes.io/part-of: wellnest
     app.kubernetes.io/managed-by: kubectl
-    environment: prod
+    environment: dev
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: assessment-service
@@ -32,7 +32,7 @@ spec:
     metadata:
       labels:
         app: assessment-service
-        environment: prod
+        environment: dev
     spec:
       securityContext:
         runAsNonRoot: true
@@ -42,7 +42,7 @@ spec:
 
       containers:
         - name: assessment-service
-          image: docker.io/bharath44623/wellnest-assessment-service:1.0.0.0
+          image: docker.io/bharath44623/wellnest-assessment:dev
           imagePullPolicy: Always
           ports:
             - containerPort: 3002
@@ -93,11 +93,11 @@ spec:
 
           resources:
             requests:
-              cpu: "200m"
-              memory: "256Mi"
+              cpu: "100m"
+              memory: "128Mi"
             limits:
-              cpu: "500m"
-              memory: "512Mi"
+              cpu: "300m"
+              memory: "256Mi"
 
           livenessProbe:
             httpGet:

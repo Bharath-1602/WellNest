@@ -1,0 +1,121 @@
+# ─────────────────────────────────────────────────────────────
+# WellNest — MongoDB Replica Set Initialization Job
+# Environment: prod
+# Namespace: wellnest-prod
+# Phase: 2 — Kubernetes Manifests
+# ─────────────────────────────────────────────────────────────
+# Run AFTER MongoDB StatefulSet pods are all Running.
+# This job initializes the replica set rs0 with 3 members.
+# ttlSecondsAfterFinished: 120 → job auto-deletes after 2 min.
+#
+# If job already ran and you need to re-run:
+#   kubectl delete job mongodb-rs-init -n wellnest-prod
+#   kubectl apply -f rs-init-job-prod.yaml
+# ─────────────────────────────────────────────────────────────
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mongodb-rs-init
+  namespace: wellnest-prod
+  labels:
+    app: mongodb-init
+    app.kubernetes.io/part-of: wellnest
+    app.kubernetes.io/managed-by: kubectl
+    environment: prod
+spec:
+  ttlSecondsAfterFinished: 120
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: mongodb-init
+        environment: prod
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: false
+      containers:
+        - name: mongo-init
+          image: mongo:7.0
+          command:
+            - bash
+            - -c
+            - |
+              set -e
+
+              PRIMARY="mongodb-0.mongodb-headless.wellnest-prod.svc.cluster.local"
+              MEMBER1="mongodb-1.mongodb-headless.wellnest-prod.svc.cluster.local"
+              MEMBER2="mongodb-2.mongodb-headless.wellnest-prod.svc.cluster.local"
+              PORT="27017"
+
+              echo "================================================"
+              echo "WellNest MongoDB Replica Set Init — PROD"
+              echo "================================================"
+              echo ""
+              echo "Waiting 20s for MongoDB pods to stabilize..."
+              sleep 20
+
+              echo "Checking if replica set already initialized..."
+              ALREADY_INIT=$(mongosh --host "$PRIMARY:$PORT" \
+                --quiet \
+                --eval "try { rs.status().ok } catch(e) { 0 }" \
+                2>/dev/null || echo "0")
+
+              if [ "$ALREADY_INIT" = "1" ]; then
+                echo "Replica set already initialized. Skipping."
+                exit 0
+              fi
+
+              echo "Initializing replica set rs0..."
+              mongosh --host "$PRIMARY:$PORT" --eval "
+                rs.initiate({
+                  _id: 'rs0',
+                  members: [
+                    { _id: 0, host: '$PRIMARY:$PORT', priority: 2 },
+                    { _id: 1, host: '$MEMBER1:$PORT', priority: 1 },
+                    { _id: 2, host: '$MEMBER2:$PORT', priority: 1 }
+                  ]
+                })
+              "
+
+              echo "Waiting 20s for primary election..."
+              sleep 20
+
+              echo "Creating admin user..."
+              mongosh --host "$PRIMARY:$PORT" \
+                --authenticationDatabase admin \
+                --eval "
+                  db = db.getSiblingDB('admin');
+                  var userExists = db.getUser('$MONGO_ROOT_USER');
+                  if (!userExists) {
+                    db.createUser({
+                      user: '$MONGO_ROOT_USER',
+                      pwd: '$MONGO_ROOT_PASS',
+                      roles: [{ role: 'root', db: 'admin' }]
+                    });
+                    print('Admin user created.');
+                  } else {
+                    print('Admin user already exists. Skipping.');
+                  }
+                " 2>/dev/null || true
+
+              echo "Replica set initialization complete!"
+              echo "Members:"
+              mongosh --host "$PRIMARY:$PORT" \
+                -u "$MONGO_ROOT_USER" \
+                -p "$MONGO_ROOT_PASS" \
+                --authenticationDatabase admin \
+                --eval "rs.status().members.forEach(m => print(m.name, m.stateStr))"
+
+          env:
+            - name: MONGO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: wellnest-secrets
+                  key: MONGODB_ROOT_USER
+            - name: MONGO_ROOT_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: wellnest-secrets
+                  key: MONGODB_ROOT_PASS

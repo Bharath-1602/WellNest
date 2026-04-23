@@ -1,0 +1,78 @@
+# ─────────────────────────────────────────────────────────────
+# WellNest — KGateway (Gateway API) + HTTPRoute
+# Environment: prod
+# Namespace: wellnest-prod
+# Phase: 2 — Kubernetes Manifests
+# ─────────────────────────────────────────────────────────────
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: wellnest-gateway
+  namespace: wellnest-prod
+  labels:
+    app.kubernetes.io/part-of: wellnest
+    app.kubernetes.io/managed-by: kubectl
+    environment: prod
+spec:
+  gatewayClassName: kgateway
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      hostname: "wellnest-prod.local"
+      allowedRoutes:
+        namespaces:
+          from: Same
+
+---
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: wellnest-routes
+  namespace: wellnest-prod
+  labels:
+    app.kubernetes.io/part-of: wellnest
+    app.kubernetes.io/managed-by: kubectl
+    environment: prod
+spec:
+  parentRefs:
+    - name: wellnest-gateway
+      namespace: wellnest-prod
+      sectionName: http
+  hostnames:
+    - "wellnest-prod.local"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/auth
+      backendRefs:
+        - name: auth-service
+          port: 3001
+          weight: 100
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/assessment
+      backendRefs:
+        - name: assessment-service
+          port: 3002
+          weight: 100
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/therapist
+      backendRefs:
+        - name: therapist-service
+          port: 3003
+          weight: 100
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: frontend-active
+          port: 80
+          weight: 100

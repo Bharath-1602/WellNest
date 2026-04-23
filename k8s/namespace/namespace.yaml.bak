@@ -1,0 +1,31 @@
+# ─────────────────────────────────────────────────────────────
+# WellNest — Namespace definitions for dev and prod environments
+# Environment: both
+# Namespace: cluster-scoped
+# Phase: 2 — Kubernetes Manifests
+# ─────────────────────────────────────────────────────────────
+# This single file creates BOTH namespaces used by WellNest.
+# Apply once — idempotent (safe to re-apply).
+# ─────────────────────────────────────────────────────────────
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: wellnest-dev
+  labels:
+    app.kubernetes.io/managed-by: kubectl
+    app.kubernetes.io/part-of: wellnest
+    environment: dev
+    project: wellnest
+
+---
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: wellnest-prod
+  labels:
+    app.kubernetes.io/managed-by: kubectl
+    app.kubernetes.io/part-of: wellnest
+    environment: prod
+    project: wellnest

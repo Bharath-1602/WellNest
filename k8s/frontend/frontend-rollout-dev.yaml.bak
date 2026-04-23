@@ -43,7 +43,7 @@ spec:
 
       containers:
         - name: frontend
-          image: docker.io/bharath44623/wellnest-frontend:1.0.0.0
+          image: docker.io/bharath44623/wellnest-frontend:dev
           imagePullPolicy: Always
           ports:
             - containerPort: 80

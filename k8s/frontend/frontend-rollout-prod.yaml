@@ -5,7 +5,7 @@
 # Phase: 2 — Kubernetes Manifests
 # ─────────────────────────────────────────────────────────────
 # ─── REPLACE BEFORE APPLYING ─────────────────────────────────
-# DOCKER_USERNAME → your DockerHub username
+# bharath44623 → your DockerHub username
 # ─────────────────────────────────────────────────────────────
 # Production: 2 replicas, higher resource limits.
 # autoPromotionEnabled: false — always manual promotion in prod.
@@ -40,7 +40,7 @@ spec:
 
       containers:
         - name: frontend
-          image: docker.io/DOCKER_USERNAME/wellnest-frontend:latest
+          image: docker.io/bharath44623/wellnest-frontend:1.0.0.0
           imagePullPolicy: Always
           ports:
             - containerPort: 80

@@ -1,7 +1,7 @@
 # ─────────────────────────────────────────────────────────────
-# WellNest — Assessment Service Deployment
-# Environment: prod
-# Namespace: wellnest-prod
+# WellNest — Auth Service Deployment
+# Environment: dev
+# Namespace: wellnest-dev
 # Phase: 2 — Kubernetes Manifests
 # ─────────────────────────────────────────────────────────────
 # ─── REPLACE BEFORE APPLYING ─────────────────────────────────
@@ -11,18 +11,18 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: assessment-service
-  namespace: wellnest-prod
+  name: auth-service
+  namespace: wellnest-dev
   labels:
-    app: assessment-service
+    app: auth-service
     app.kubernetes.io/part-of: wellnest
     app.kubernetes.io/managed-by: kubectl
-    environment: prod
+    environment: dev
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
-      app: assessment-service
+      app: auth-service
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -31,8 +31,8 @@ spec:
   template:
     metadata:
       labels:
-        app: assessment-service
-        environment: prod
+        app: auth-service
+        environment: dev
     spec:
       securityContext:
         runAsNonRoot: true
@@ -41,11 +41,11 @@ spec:
         fsGroup: 1000
 
       containers:
-        - name: assessment-service
-          image: docker.io/bharath44623/wellnest-assessment-service:1.0.0.0
+        - name: auth-service
+          image: docker.io/bharath44623/wellnest-auth:dev
           imagePullPolicy: Always
           ports:
-            - containerPort: 3002
+            - containerPort: 3001
               name: http
               protocol: TCP
 
@@ -54,7 +54,7 @@ spec:
               valueFrom:
                 configMapKeyRef:
                   name: wellnest-config
-                  key: ASSESSMENT_SERVICE_PORT
+                  key: AUTH_SERVICE_PORT
             - name: NODE_ENV
               valueFrom:
                 configMapKeyRef:
@@ -70,16 +70,6 @@ spec:
                 configMapKeyRef:
                   name: wellnest-config
                   key: JWT_EXPIRY
-            - name: AUTH_SERVICE_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: wellnest-config
-                  key: AUTH_SERVICE_URL
-            - name: RUN_SEED
-              valueFrom:
-                configMapKeyRef:
-                  name: wellnest-config
-                  key: RUN_SEED
             - name: MONGODB_URI
               valueFrom:
                 secretKeyRef:
@@ -93,16 +83,16 @@ spec:
 
           resources:
             requests:
-              cpu: "200m"
-              memory: "256Mi"
+              cpu: "100m"
+              memory: "128Mi"
             limits:
-              cpu: "500m"
-              memory: "512Mi"
+              cpu: "300m"
+              memory: "256Mi"
 
           livenessProbe:
             httpGet:
               path: /health
-              port: 3002
+              port: 3001
             initialDelaySeconds: 30
             periodSeconds: 20
             timeoutSeconds: 5
@@ -112,7 +102,7 @@ spec:
           readinessProbe:
             httpGet:
               path: /health
-              port: 3002
+              port: 3001
             initialDelaySeconds: 15
             periodSeconds: 10
             timeoutSeconds: 5

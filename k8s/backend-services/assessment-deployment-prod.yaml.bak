@@ -42,7 +42,7 @@ spec:
 
       containers:
         - name: assessment-service
-          image: docker.io/bharath44623/wellnest-assessment-service:1.0.0.0
+          image: docker.io/bharath44623/wellnest-assessment:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 3002

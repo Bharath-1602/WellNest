@@ -5,7 +5,7 @@
 # Phase: 2 — Kubernetes Manifests
 # ─────────────────────────────────────────────────────────────
 # ─── REPLACE BEFORE APPLYING ─────────────────────────────────
-# DOCKER_USERNAME → your DockerHub username
+# bharath44623 → your DockerHub username
 # ─────────────────────────────────────────────────────────────
 
 apiVersion: apps/v1
@@ -42,7 +42,7 @@ spec:
 
       containers:
         - name: assessment-service
-          image: docker.io/DOCKER_USERNAME/wellnest-assessment:dev
+          image: docker.io/bharath44623/wellnest-assessment-service:1.0.0.0
           imagePullPolicy: Always
           ports:
             - containerPort: 3002

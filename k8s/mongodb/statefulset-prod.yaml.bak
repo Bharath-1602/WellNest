@@ -1,12 +1,8 @@
 # ─────────────────────────────────────────────────────────────
 # WellNest — MongoDB StatefulSet (3-member replica set)
-# Environment: dev
-# Namespace: wellnest-dev
+# Environment: prod
+# Namespace: wellnest-prod
 # Phase: 2 — Kubernetes Manifests
-# ─────────────────────────────────────────────────────────────
-# ─── REPLACE BEFORE APPLYING ─────────────────────────────────
-# bharath44623 → your DockerHub username (not used here,
-#                   but mentioned for consistency)
 # ─────────────────────────────────────────────────────────────
 #
 # MONGODB KEYFILE — CREATE BEFORE APPLYING THIS FILE
@@ -16,25 +12,24 @@
 #
 # kubectl create secret generic mongodb-keyfile \
 #   --from-file=keyfile=/tmp/mongodb-keyfile \
-#   --namespace=wellnest-dev
+#   --namespace=wellnest-prod
 #
 # rm /tmp/mongodb-keyfile
 # ─────────────────────────────────────────────────────────────
-# MongoDB runs as UID 999 (official mongo image default).
-# initContainers fix data directory permissions since NFS
-# may mount with root ownership.
+# Production uses 5Gi storage per member for larger dataset
+# capacity. All other settings match dev for consistency.
 # ─────────────────────────────────────────────────────────────
 
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: mongodb
-  namespace: wellnest-dev
+  namespace: wellnest-prod
   labels:
     app: mongodb
     app.kubernetes.io/part-of: wellnest
     app.kubernetes.io/managed-by: kubectl
-    environment: dev
+    environment: prod
 spec:
   serviceName: mongodb-headless
   replicas: 3
@@ -45,7 +40,7 @@ spec:
     metadata:
       labels:
         app: mongodb
-        environment: dev
+        environment: prod
     spec:
       terminationGracePeriodSeconds: 30
       securityContext:
@@ -148,10 +143,10 @@ spec:
         name: mongodb-data
         labels:
           app: mongodb
-          environment: dev
+          environment: prod
       spec:
         accessModes: ["ReadWriteOnce"]
         storageClassName: nfs-client
         resources:
           requests:
-            storage: 2Gi
+            storage: 5Gi
