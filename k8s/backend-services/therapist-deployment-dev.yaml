@@ -39,7 +39,18 @@ spec:
         runAsUser: 1000
         runAsGroup: 1000
         fsGroup: 1000
-
+      initContainers:
+        - name: wait-for-auth
+          image: busybox:1.35
+          command:
+            - sh
+            - -c
+            - |
+              until wget -qO- http://auth-service.wellnest-dev.svc.cluster.local:3001/health > /dev/null 2>&1; do
+                echo "Auth not ready, retrying in 5s..."
+                sleep 5
+              done
+              echo "Auth service ready!"
       containers:
         - name: therapist-service
           image: docker.io/bharath44623/wellnest-therapist-service:1.0.0.0
