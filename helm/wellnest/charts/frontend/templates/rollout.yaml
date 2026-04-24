@@ -6,9 +6,11 @@ metadata:
   namespace: {{ .Values.global.namespace }}
   labels:
     app: frontend
-    {{- include "wellnest.labels" . | nindent 4 }}
+    app.kubernetes.io/part-of: wellnest
+    app.kubernetes.io/managed-by: Helm
+    environment: {{ .Values.global.environment }}
 spec:
-  replicas: {{ .Values.frontend.replicaCount }}
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
       app: frontend
@@ -25,30 +27,30 @@ spec:
         fsGroup: 101
       containers:
         - name: frontend
-          image: docker.io/{{ .Values.global.dockerUsername }}/{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}
+          image: docker.io/{{ .Values.global.dockerUsername }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}
           imagePullPolicy: {{ .Values.global.image.pullPolicy }}
           ports:
             - containerPort: 80
               name: http
               protocol: TCP
           resources:
-            {{- toYaml .Values.frontend.resources | nindent 12 }}
+            {{- toYaml .Values.resources | nindent 12 }}
           livenessProbe:
             httpGet:
               path: /
               port: 80
-            initialDelaySeconds: {{ .Values.frontend.probes.liveness.initialDelaySeconds }}
-            periodSeconds: {{ .Values.frontend.probes.liveness.periodSeconds }}
-            timeoutSeconds: {{ .Values.frontend.probes.liveness.timeoutSeconds }}
-            failureThreshold: {{ .Values.frontend.probes.liveness.failureThreshold }}
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.liveness.failureThreshold }}
           readinessProbe:
             httpGet:
               path: /
               port: 80
-            initialDelaySeconds: {{ .Values.frontend.probes.readiness.initialDelaySeconds }}
-            periodSeconds: {{ .Values.frontend.probes.readiness.periodSeconds }}
-            timeoutSeconds: {{ .Values.frontend.probes.readiness.timeoutSeconds }}
-            failureThreshold: {{ .Values.frontend.probes.readiness.failureThreshold }}
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.readiness.failureThreshold }}
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
@@ -58,6 +60,6 @@ spec:
     blueGreen:
       activeService: frontend-active
       previewService: frontend-preview
-      autoPromotionEnabled: {{ .Values.frontend.rollout.autoPromotionEnabled }}
-      scaleDownDelaySeconds: {{ .Values.frontend.rollout.scaleDownDelaySeconds }}
-      previewReplicaCount: {{ .Values.frontend.rollout.previewReplicaCount }}
+      autoPromotionEnabled: {{ .Values.rollout.autoPromotionEnabled }}
+      scaleDownDelaySeconds: {{ .Values.rollout.scaleDownDelaySeconds }}
+      previewReplicaCount: {{ .Values.rollout.previewReplicaCount }}

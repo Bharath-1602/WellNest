@@ -1,0 +1,39 @@
+# Default values — overridden by parent values.yaml
+global:
+  namespace: wellnest
+  environment: base
+  dockerUsername: bharath44623
+  image:
+    pullPolicy: Always
+  services:
+    auth:
+      host: auth-service
+      port: 3001
+  jwt:
+    expiry: 24h
+    algorithm: HS256
+  urls:
+    frontend: http://wellnest.local
+
+replicaCount: 1
+image:
+  repository: wellnest-auth
+  tag: latest
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 300m
+    memory: 256Mi
+probes:
+  liveness:
+    initialDelaySeconds: 30
+    periodSeconds: 20
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readiness:
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3

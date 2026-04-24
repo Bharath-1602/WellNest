@@ -1,12 +1,11 @@
-# NFS StorageClass — skip if nfs-client already exists
-{{- if .Values.nfs.enabled }}
+{{- if .Values.enabled }}
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-  name: {{ .Values.nfs.storageClassName }}
+  name: {{ .Values.storageClassName }}
   annotations:
     storageclass.kubernetes.io/is-default-class: "false"
-provisioner: {{ .Values.nfs.provisioner }}
+provisioner: {{ .Values.provisioner }}
 parameters:
   onDelete: "retain"
   pathPattern: "${.PVC.namespace}/${.PVC.name}"

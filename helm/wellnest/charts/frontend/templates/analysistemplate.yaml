@@ -6,7 +6,9 @@ metadata:
   namespace: {{ .Values.global.namespace }}
   labels:
     app: frontend
-    {{- include "wellnest.labels" . | nindent 4 }}
+    app.kubernetes.io/part-of: wellnest
+    app.kubernetes.io/managed-by: Helm
+    environment: {{ .Values.global.environment }}
 spec:
   metrics:
     - name: health-check

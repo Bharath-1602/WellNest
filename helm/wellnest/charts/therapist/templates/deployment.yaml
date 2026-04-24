@@ -1,4 +1,4 @@
-# Therapist service Deployment — adds AUTH_SERVICE_URL and ASSESSMENT_SERVICE_URL
+# Therapist service Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -6,9 +6,11 @@ metadata:
   namespace: {{ .Values.global.namespace }}
   labels:
     app: therapist-service
-    {{- include "wellnest.labels" . | nindent 4 }}
+    app.kubernetes.io/part-of: wellnest
+    app.kubernetes.io/managed-by: Helm
+    environment: {{ .Values.global.environment }}
 spec:
-  replicas: {{ .Values.therapist.replicaCount }}
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
       app: therapist-service
@@ -30,7 +32,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: therapist-service
-          image: docker.io/{{ .Values.global.dockerUsername }}/{{ .Values.therapist.image.repository }}:{{ .Values.therapist.image.tag }}
+          image: docker.io/{{ .Values.global.dockerUsername }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}
           imagePullPolicy: {{ .Values.global.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.global.services.therapist.port }}
@@ -38,35 +40,17 @@ spec:
               protocol: TCP
           env:
             - name: PORT
-              valueFrom:
-                configMapKeyRef:
-                  name: wellnest-config
-                  key: THERAPIST_SERVICE_PORT
+              value: {{ .Values.global.services.therapist.port | quote }}
             - name: NODE_ENV
-              valueFrom:
-                configMapKeyRef:
-                  name: wellnest-config
-                  key: NODE_ENV
+              value: {{ .Values.global.environment | quote }}
             - name: FRONTEND_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: wellnest-config
-                  key: FRONTEND_URL
+              value: {{ .Values.global.urls.frontend | quote }}
             - name: JWT_EXPIRY
-              valueFrom:
-                configMapKeyRef:
-                  name: wellnest-config
-                  key: JWT_EXPIRY
+              value: {{ .Values.global.jwt.expiry | quote }}
             - name: AUTH_SERVICE_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: wellnest-config
-                  key: AUTH_SERVICE_URL
+              value: "http://{{ .Values.global.services.auth.host }}.{{ .Values.global.namespace }}.svc.cluster.local:{{ .Values.global.services.auth.port }}"
             - name: ASSESSMENT_SERVICE_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: wellnest-config
-                  key: ASSESSMENT_SERVICE_URL
+              value: "http://{{ .Values.global.services.assessment.host }}.{{ .Values.global.namespace }}.svc.cluster.local:{{ .Values.global.services.assessment.port }}"
             - name: MONGODB_URI
               valueFrom:
                 secretKeyRef:
@@ -78,23 +62,23 @@ spec:
                   name: wellnest-secrets
                   key: JWT_SECRET
           resources:
-            {{- toYaml .Values.therapist.resources | nindent 12 }}
+            {{- toYaml .Values.resources | nindent 12 }}
           livenessProbe:
             httpGet:
               path: /health
               port: {{ .Values.global.services.therapist.port }}
-            initialDelaySeconds: {{ .Values.therapist.probes.liveness.initialDelaySeconds }}
-            periodSeconds: {{ .Values.therapist.probes.liveness.periodSeconds }}
-            timeoutSeconds: {{ .Values.therapist.probes.liveness.timeoutSeconds }}
-            failureThreshold: {{ .Values.therapist.probes.liveness.failureThreshold }}
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.liveness.failureThreshold }}
           readinessProbe:
             httpGet:
               path: /health
               port: {{ .Values.global.services.therapist.port }}
-            initialDelaySeconds: {{ .Values.therapist.probes.readiness.initialDelaySeconds }}
-            periodSeconds: {{ .Values.therapist.probes.readiness.periodSeconds }}
-            timeoutSeconds: {{ .Values.therapist.probes.readiness.timeoutSeconds }}
-            failureThreshold: {{ .Values.therapist.probes.readiness.failureThreshold }}
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.readiness.failureThreshold }}
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: false

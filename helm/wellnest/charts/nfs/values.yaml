@@ -1,0 +1,13 @@
+# NFS sub-chart values — root level (no nfs: prefix)
+enabled: true
+serverIP: 172.31.90.107
+serverPath: /srv/nfs/kubedata
+storageClassName: nfs-client
+provisioner: k8s-sigs.io/nfs-subdir-external-provisioner
+image:
+  repository: registry.k8s.io/sig-storage/nfs-subdir-external-provisioner
+  tag: v4.0.2
+
+global:
+  namespace: wellnest
+  environment: base

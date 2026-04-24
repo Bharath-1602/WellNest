@@ -1,4 +1,3 @@
-# Auth service ClusterIP
 apiVersion: v1
 kind: Service
 metadata:
@@ -6,7 +5,9 @@ metadata:
   namespace: {{ .Values.global.namespace }}
   labels:
     app: auth-service
-    {{- include "wellnest.labels" . | nindent 4 }}
+    app.kubernetes.io/part-of: wellnest
+    app.kubernetes.io/managed-by: Helm
+    environment: {{ .Values.global.environment }}
 spec:
   type: ClusterIP
   selector:

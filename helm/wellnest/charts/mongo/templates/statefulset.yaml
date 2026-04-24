@@ -1,5 +1,3 @@
-# MongoDB StatefulSet — 3 replicas, NFS storage, replica set rs0
-# Requires mongodb-keyfile secret created before helm install
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -7,10 +5,12 @@ metadata:
   namespace: {{ .Values.global.namespace }}
   labels:
     app: mongodb
-    {{- include "wellnest.labels" . | nindent 4 }}
+    app.kubernetes.io/part-of: wellnest
+    app.kubernetes.io/managed-by: Helm
+    environment: {{ .Values.global.environment }}
 spec:
   serviceName: mongodb-headless
-  replicas: {{ .Values.mongo.replicaCount }}
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
       app: mongodb
@@ -34,7 +34,7 @@ spec:
             runAsUser: 0
       containers:
         - name: mongodb
-          image: mongo:{{ .Values.mongo.image.tag }}
+          image: mongo:{{ .Values.image.tag }}
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 27017
@@ -61,7 +61,7 @@ spec:
             - name: MONGO_INITDB_DATABASE
               value: {{ .Values.global.mongodb.database }}
           resources:
-            {{- toYaml .Values.mongo.resources | nindent 12 }}
+            {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
             - name: mongodb-data
               mountPath: /data/db
@@ -71,17 +71,17 @@ spec:
           livenessProbe:
             exec:
               command: ["mongosh", "--eval", "db.adminCommand('ping')", "--quiet"]
-            initialDelaySeconds: {{ .Values.mongo.probes.liveness.initialDelaySeconds }}
-            periodSeconds: {{ .Values.mongo.probes.liveness.periodSeconds }}
-            timeoutSeconds: {{ .Values.mongo.probes.liveness.timeoutSeconds }}
-            failureThreshold: {{ .Values.mongo.probes.liveness.failureThreshold }}
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.liveness.failureThreshold }}
           readinessProbe:
             exec:
               command: ["mongosh", "--eval", "db.adminCommand('ping')", "--quiet"]
-            initialDelaySeconds: {{ .Values.mongo.probes.readiness.initialDelaySeconds }}
-            periodSeconds: {{ .Values.mongo.probes.readiness.periodSeconds }}
-            timeoutSeconds: {{ .Values.mongo.probes.readiness.timeoutSeconds }}
-            failureThreshold: {{ .Values.mongo.probes.readiness.failureThreshold }}
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.readiness.failureThreshold }}
           securityContext:
             runAsUser: 999
             runAsGroup: 999
@@ -100,7 +100,7 @@ spec:
           app: mongodb
       spec:
         accessModes: ["ReadWriteOnce"]
-        storageClassName: {{ .Values.mongo.storage.storageClassName }}
+        storageClassName: {{ .Values.storage.storageClassName }}
         resources:
           requests:
-            storage: {{ .Values.mongo.storage.size }}
+            storage: {{ .Values.storage.size }}

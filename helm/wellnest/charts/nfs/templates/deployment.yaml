@@ -1,5 +1,4 @@
-# NFS provisioner deployment in kube-system
-{{- if .Values.nfs.enabled }}
+{{- if .Values.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -20,20 +19,20 @@ spec:
       serviceAccountName: nfs-client-provisioner
       containers:
         - name: nfs-client-provisioner
-          image: {{ .Values.nfs.image.repository }}:{{ .Values.nfs.image.tag }}
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
           volumeMounts:
             - name: nfs-client-root
               mountPath: /persistentvolumes
           env:
             - name: PROVISIONER_NAME
-              value: {{ .Values.nfs.provisioner }}
+              value: {{ .Values.provisioner }}
             - name: NFS_SERVER
-              value: {{ .Values.nfs.serverIP | quote }}
+              value: {{ .Values.serverIP | quote }}
             - name: NFS_PATH
-              value: {{ .Values.nfs.serverPath | quote }}
+              value: {{ .Values.serverPath | quote }}
       volumes:
         - name: nfs-client-root
           nfs:
-            server: {{ .Values.nfs.serverIP | quote }}
-            path: {{ .Values.nfs.serverPath | quote }}
+            server: {{ .Values.serverIP | quote }}
+            path: {{ .Values.serverPath | quote }}
 {{- end }}

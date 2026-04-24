@@ -1,0 +1,21 @@
+dependencies:
+- name: auth
+  repository: file://charts/auth
+  version: 1.0.0
+- name: assessment
+  repository: file://charts/assessment
+  version: 1.0.0
+- name: therapist
+  repository: file://charts/therapist
+  version: 1.0.0
+- name: frontend
+  repository: file://charts/frontend
+  version: 1.0.0
+- name: mongo
+  repository: file://charts/mongo
+  version: 1.0.0
+- name: nfs
+  repository: file://charts/nfs
+  version: 1.0.0
+digest: sha256:3f91fca5ef115ec3bc3c1ff90405f9fdb38aff89ae1329e69c8ee59879a2965e
+generated: "2026-04-24T05:58:37.749200515Z"

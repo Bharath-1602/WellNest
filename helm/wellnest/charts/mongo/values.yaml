@@ -1,0 +1,32 @@
+global:
+  namespace: wellnest
+  environment: base
+  mongodb:
+    replicaSetName: rs0
+    database: wellnest
+    port: 27017
+
+replicaCount: 3
+image:
+  tag: "7.0"
+storage:
+  size: 2Gi
+  storageClassName: nfs-client
+resources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+probes:
+  liveness:
+    initialDelaySeconds: 30
+    periodSeconds: 20
+    timeoutSeconds: 10
+    failureThreshold: 3
+  readiness:
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3

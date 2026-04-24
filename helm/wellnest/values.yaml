@@ -4,7 +4,7 @@
 global:
   namespace: wellnest
   environment: base
-  dockerUsername: DOCKER_USERNAME
+  dockerUsername: bharath44623
   image:
     pullPolicy: Always
   mongodb:
@@ -162,7 +162,7 @@ mongo:
 
 nfs:
   enabled: true
-  serverIP: NFS_SERVER_IP
+  serverIP: 172.31.90.107
   serverPath: /srv/nfs/kubedata
   storageClassName: nfs-client
   provisioner: k8s-sigs.io/nfs-subdir-external-provisioner
@@ -177,3 +177,47 @@ gateway:
 
 networkPolicy:
   enabled: true
+
+# ============================================
+# Sub-chart value overrides (umbrella pattern)
+# These override each sub-chart's own values.yaml
+# ============================================
+auth:
+  global:
+    namespace: "{{ .Values.global.namespace }}"  # passed via helm --set or values merge
+  replicaCount: 1
+  image:
+    repository: wellnest-auth
+    tag: latest
+
+assessment:
+  replicaCount: 1
+  runSeed: "true"
+  image:
+    repository: wellnest-assessment
+    tag: latest
+
+therapist:
+  replicaCount: 1
+  image:
+    repository: wellnest-therapist
+    tag: latest
+
+frontend:
+  replicaCount: 1
+  image:
+    repository: wellnest-frontend
+    tag: latest
+
+mongo:
+  replicaCount: 3
+  image:
+    tag: "7.0"
+  storage:
+    size: 2Gi
+    storageClassName: nfs-client
+
+nfs:
+  enabled: true
+  serverIP: 172.31.90.107
+  serverPath: /srv/nfs/kubedata
