@@ -1,10 +1,3 @@
-# ─────────────────────────────────────────────────────────────
-# WellNest — Network Policies (MongoDB access control)
-# Environment: prod
-# Namespace: wellnest-prod
-# Phase: 2 — Kubernetes Manifests
-# ─────────────────────────────────────────────────────────────
-
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -25,31 +18,15 @@ spec:
         - podSelector:
             matchLabels:
               app: auth-service
-      ports:
-        - protocol: TCP
-          port: 27017
-    - from:
         - podSelector:
             matchLabels:
               app: assessment-service
-      ports:
-        - protocol: TCP
-          port: 27017
-    - from:
         - podSelector:
             matchLabels:
               app: therapist-service
-      ports:
-        - protocol: TCP
-          port: 27017
-    - from:
         - podSelector:
             matchLabels:
               app: mongodb
-      ports:
-        - protocol: TCP
-          port: 27017
-    - from:
         - podSelector:
             matchLabels:
               app: mongodb-init
@@ -62,7 +39,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: frontend-egress-policy
+  name: frontend-deny-mongodb
   namespace: wellnest-prod
   labels:
     app.kubernetes.io/part-of: wellnest
@@ -96,7 +73,8 @@ spec:
       ports:
         - protocol: TCP
           port: 3003
-    - to: []
+    - to:
+        - namespaceSelector: {}
       ports:
         - protocol: UDP
           port: 53

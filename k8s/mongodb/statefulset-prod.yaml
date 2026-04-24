@@ -1,25 +1,3 @@
-# ─────────────────────────────────────────────────────────────
-# WellNest — MongoDB StatefulSet (3-member replica set)
-# Environment: prod
-# Namespace: wellnest-prod
-# Phase: 2 — Kubernetes Manifests
-# ─────────────────────────────────────────────────────────────
-#
-# MONGODB KEYFILE — CREATE BEFORE APPLYING THIS FILE
-#
-# openssl rand -base64 756 > /tmp/mongodb-keyfile
-# chmod 400 /tmp/mongodb-keyfile
-#
-# kubectl create secret generic mongodb-keyfile \
-#   --from-file=keyfile=/tmp/mongodb-keyfile \
-#   --namespace=wellnest-prod
-#
-# rm /tmp/mongodb-keyfile
-# ─────────────────────────────────────────────────────────────
-# Production uses 5Gi storage per member for larger dataset
-# capacity. All other settings match dev for consistency.
-# ─────────────────────────────────────────────────────────────
-
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -55,15 +33,22 @@ spec:
             - |
               chown -R 999:999 /data/db
               chmod 700 /data/db
+              cp /etc/mongodb-keyfile/keyfile /keyfile-work/keyfile
+              chmod 400 /keyfile-work/keyfile
+              chown 999:999 /keyfile-work/keyfile
           volumeMounts:
             - name: mongodb-data
               mountPath: /data/db
-          securityContext:
-            runAsUser: 0
+            - name: mongodb-keyfile
+              mountPath: /etc/mongodb-keyfile
+              readOnly: true
+            - name: keyfile-work
+              mountPath: /keyfile-work
 
       containers:
         - name: mongodb
           image: mongo:7.0
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 27017
               name: mongodb
@@ -74,7 +59,7 @@ spec:
             - "--bind_ip_all"
             - "--auth"
             - "--keyFile"
-            - "/etc/mongodb-keyfile/keyfile"
+            - "/keyfile-work/keyfile"
           env:
             - name: MONGO_INITDB_ROOT_USERNAME
               valueFrom:
@@ -88,6 +73,43 @@ spec:
                   key: MONGODB_ROOT_PASS
             - name: MONGO_INITDB_DATABASE
               value: wellnest
+          securityContext:
+            runAsUser: 999
+            runAsGroup: 999
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: mongodb-data
+              mountPath: /data/db
+            - name: mongodb-keyfile
+              mountPath: /etc/mongodb-keyfile
+              readOnly: true
+            - name: keyfile-work
+              mountPath: /keyfile-work
+          readinessProbe:
+            exec:
+              command:
+                - mongosh
+                - --eval
+                - "db.adminCommand('ping')"
+                - --quiet
+            initialDelaySeconds: 15
+            timeoutSeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            exec:
+              command:
+                - mongosh
+                - --eval
+                - "db.adminCommand('ping')"
+                - --quiet
+            initialDelaySeconds: 30
+            timeoutSeconds: 10
+            periodSeconds: 20
+            failureThreshold: 3
           resources:
             requests:
               cpu: "200m"
@@ -95,48 +117,14 @@ spec:
             limits:
               cpu: "500m"
               memory: "512Mi"
-          volumeMounts:
-            - name: mongodb-data
-              mountPath: /data/db
-            - name: mongodb-keyfile
-              mountPath: /etc/mongodb-keyfile
-              readOnly: true
-          livenessProbe:
-            exec:
-              command:
-                - mongosh
-                - "--eval"
-                - "db.adminCommand('ping')"
-                - "--quiet"
-            initialDelaySeconds: 30
-            periodSeconds: 20
-            timeoutSeconds: 10
-            failureThreshold: 3
-            successThreshold: 1
-          readinessProbe:
-            exec:
-              command:
-                - mongosh
-                - "--eval"
-                - "db.adminCommand('ping')"
-                - "--quiet"
-            initialDelaySeconds: 15
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 3
-            successThreshold: 1
-          securityContext:
-            runAsUser: 999
-            runAsGroup: 999
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop: ["ALL"]
 
       volumes:
         - name: mongodb-keyfile
           secret:
             secretName: mongodb-keyfile
-            defaultMode: 0400
+            defaultMode: 256
+        - name: keyfile-work
+          emptyDir: {}
 
   volumeClaimTemplates:
     - metadata:
@@ -145,8 +133,9 @@ spec:
           app: mongodb
           environment: prod
       spec:
-        accessModes: ["ReadWriteOnce"]
+        accessModes:
+          - ReadWriteOnce
         storageClassName: nfs-client
         resources:
           requests:
-            storage: 5Gi
+            storage: 2Gi

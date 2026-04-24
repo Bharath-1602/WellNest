@@ -5,7 +5,7 @@
 # Phase: 2 — Kubernetes Manifests
 # ─────────────────────────────────────────────────────────────
 # ─── REPLACE BEFORE APPLYING ─────────────────────────────────
-# NFS_SERVER_IP   → your NFS server IP
+# 172.31.90.107   → your NFS server IP
 # ─────────────────────────────────────────────────────────────
 # Deploys the NFS subdir external provisioner that watches for
 # PVCs using storageClassName: nfs-client and automatically
@@ -44,11 +44,11 @@ spec:
             - name: PROVISIONER_NAME
               value: k8s-sigs.io/nfs-subdir-external-provisioner
             - name: NFS_SERVER
-              value: "NFS_SERVER_IP"
+              value: "172.31.90.107"
             - name: NFS_PATH
-              value: "/srv/nfs/kubedata"
+              value: "/srv/nfs/wellnest"
       volumes:
         - name: nfs-client-root
           nfs:
-            server: "NFS_SERVER_IP"
-            path: "/srv/nfs/kubedata"
+            server: "172.31.90.107"
+            path: "/srv/nfs/wellnest"

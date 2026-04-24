@@ -1,16 +1,10 @@
 # ─────────────────────────────────────────────────────────────
-# WellNest — Network Policies (MongoDB access control)
+# WellNest — Network Policies
 # Environment: dev
 # Namespace: wellnest-dev
-# Phase: 2 — Kubernetes Manifests
-# ─────────────────────────────────────────────────────────────
-# Policy 1: MongoDB ingress — only backends + mongo peers allowed
-# Policy 2: Frontend egress — can reach backends but NOT MongoDB
 # ─────────────────────────────────────────────────────────────
 
-# Controls WHO can send traffic TO MongoDB pods.
-# Only backend services, other MongoDB pods, and the init job
-# are allowed. Frontend is NOT in this allow list.
+# Policy 1: MongoDB only accepts from backend services
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -31,31 +25,15 @@ spec:
         - podSelector:
             matchLabels:
               app: auth-service
-      ports:
-        - protocol: TCP
-          port: 27017
-    - from:
         - podSelector:
             matchLabels:
               app: assessment-service
-      ports:
-        - protocol: TCP
-          port: 27017
-    - from:
         - podSelector:
             matchLabels:
               app: therapist-service
-      ports:
-        - protocol: TCP
-          port: 27017
-    - from:
         - podSelector:
             matchLabels:
               app: mongodb
-      ports:
-        - protocol: TCP
-          port: 27017
-    - from:
         - podSelector:
             matchLabels:
               app: mongodb-init
@@ -65,13 +43,11 @@ spec:
 
 ---
 
-# Controls WHERE frontend pods can SEND traffic.
-# Frontend can reach backend services but NOT MongoDB.
-# DNS (port 53) is allowed so service discovery works.
+# Policy 2: Frontend CANNOT access MongoDB
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: frontend-egress-policy
+  name: frontend-deny-mongodb
   namespace: wellnest-dev
   labels:
     app.kubernetes.io/part-of: wellnest
@@ -105,7 +81,8 @@ spec:
       ports:
         - protocol: TCP
           port: 3003
-    - to: []
+    - to:
+        - namespaceSelector: {}
       ports:
         - protocol: UDP
           port: 53
