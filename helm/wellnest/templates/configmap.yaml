@@ -1,0 +1,24 @@
+# Non-secret configuration for all services
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wellnest-config
+  namespace: {{ include "wellnest.namespace" . }}
+  labels:
+    {{- include "wellnest.labels" . | nindent 4 }}
+data:
+  NODE_ENV: {{ .Values.global.environment | quote }}
+  RUN_SEED: {{ .Values.assessment.runSeed | quote }}
+  AUTH_SERVICE_PORT: {{ .Values.global.services.auth.port | quote }}
+  ASSESSMENT_SERVICE_PORT: {{ .Values.global.services.assessment.port | quote }}
+  THERAPIST_SERVICE_PORT: {{ .Values.global.services.therapist.port | quote }}
+  AUTH_SERVICE_URL: {{ include "wellnest.authURL" . | quote }}
+  ASSESSMENT_SERVICE_URL: {{ include "wellnest.assessmentURL" . | quote }}
+  THERAPIST_SERVICE_URL: {{ include "wellnest.therapistURL" . | quote }}
+  MONGODB_HOST: "mongodb-0.mongodb-headless.{{ .Values.global.namespace }}.svc.cluster.local"
+  MONGODB_PORT: {{ .Values.global.mongodb.port | quote }}
+  MONGODB_DATABASE: {{ .Values.global.mongodb.database | quote }}
+  MONGODB_REPLICA_SET: {{ .Values.global.mongodb.replicaSetName | quote }}
+  FRONTEND_URL: {{ .Values.global.urls.frontend | quote }}
+  JWT_EXPIRY: {{ .Values.global.jwt.expiry | quote }}
+  JWT_ALGORITHM: {{ .Values.global.jwt.algorithm | quote }}

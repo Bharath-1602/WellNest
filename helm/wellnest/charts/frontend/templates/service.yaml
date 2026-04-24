@@ -1,0 +1,37 @@
+# Frontend active + preview services for Argo Rollout blue-green
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-active
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: frontend
+    {{- include "wellnest.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    app: frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-preview
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: frontend
+    {{- include "wellnest.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    app: frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP

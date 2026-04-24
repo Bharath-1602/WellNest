@@ -1,0 +1,80 @@
+# Helm post-install hook — initializes MongoDB replica set rs0
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mongodb-rs-init
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: mongodb-init
+    {{- include "wellnest.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  ttlSecondsAfterFinished: 120
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: mongodb-init
+        environment: {{ .Values.global.environment }}
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: mongo-init
+          image: mongo:{{ .Values.mongo.image.tag }}
+          command:
+            - bash
+            - -c
+            - |
+              set -e
+              NS="{{ .Values.global.namespace }}"
+              RS="{{ .Values.global.mongodb.replicaSetName }}"
+              P0="mongodb-0.mongodb-headless.${NS}.svc.cluster.local:27017"
+              P1="mongodb-1.mongodb-headless.${NS}.svc.cluster.local:27017"
+              P2="mongodb-2.mongodb-headless.${NS}.svc.cluster.local:27017"
+              echo "Waiting 20s for MongoDB pods..."
+              sleep 20
+              INIT=$(mongosh --host "$P0" --quiet \
+                --eval "try{rs.status().ok}catch(e){0}" 2>/dev/null || echo "0")
+              if [ "$INIT" = "1" ]; then
+                echo "Replica set already initialized."
+                exit 0
+              fi
+              echo "Initializing replica set ${RS}..."
+              mongosh --host "$P0" --eval "
+                rs.initiate({
+                  _id: '${RS}',
+                  members: [
+                    {_id:0,host:'${P0}',priority:2},
+                    {_id:1,host:'${P1}',priority:1},
+                    {_id:2,host:'${P2}',priority:1}
+                  ]
+                })"
+              echo "Waiting 20s for primary election..."
+              sleep 20
+              echo "Creating admin user..."
+              mongosh --host "$P0" --eval "
+                db = db.getSiblingDB('admin');
+                if (!db.getUser('$MONGO_ROOT_USER')) {
+                  db.createUser({
+                    user:'$MONGO_ROOT_USER',
+                    pwd:'$MONGO_ROOT_PASS',
+                    roles:[{role:'root',db:'admin'}]
+                  });
+                  print('Admin user created.');
+                } else { print('Admin user exists.'); }
+              " 2>/dev/null || true
+              echo "Replica set init complete!"
+          env:
+            - name: MONGO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: wellnest-secrets
+                  key: MONGODB_ROOT_USER
+            - name: MONGO_ROOT_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: wellnest-secrets
+                  key: MONGODB_ROOT_PASS

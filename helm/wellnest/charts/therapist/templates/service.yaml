@@ -1,0 +1,18 @@
+# Therapist service ClusterIP
+apiVersion: v1
+kind: Service
+metadata:
+  name: therapist-service
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: therapist-service
+    {{- include "wellnest.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    app: therapist-service
+  ports:
+    - name: http
+      port: {{ .Values.global.services.therapist.port }}
+      targetPort: {{ .Values.global.services.therapist.port }}
+      protocol: TCP

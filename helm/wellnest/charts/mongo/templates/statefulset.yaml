@@ -1,0 +1,106 @@
+# MongoDB StatefulSet — 3 replicas, NFS storage, replica set rs0
+# Requires mongodb-keyfile secret created before helm install
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongodb
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: mongodb
+    {{- include "wellnest.labels" . | nindent 4 }}
+spec:
+  serviceName: mongodb-headless
+  replicas: {{ .Values.mongo.replicaCount }}
+  selector:
+    matchLabels:
+      app: mongodb
+  template:
+    metadata:
+      labels:
+        app: mongodb
+        environment: {{ .Values.global.environment }}
+    spec:
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        fsGroup: 999
+      initContainers:
+        - name: init-permissions
+          image: busybox:1.35
+          command: ["sh", "-c", "chown -R 999:999 /data/db && chmod 700 /data/db"]
+          volumeMounts:
+            - name: mongodb-data
+              mountPath: /data/db
+          securityContext:
+            runAsUser: 0
+      containers:
+        - name: mongodb
+          image: mongo:{{ .Values.mongo.image.tag }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 27017
+              name: mongodb
+          command:
+            - mongod
+            - "--replSet"
+            - {{ .Values.global.mongodb.replicaSetName }}
+            - "--bind_ip_all"
+            - "--auth"
+            - "--keyFile"
+            - "/etc/mongodb-keyfile/keyfile"
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: wellnest-secrets
+                  key: MONGODB_ROOT_USER
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: wellnest-secrets
+                  key: MONGODB_ROOT_PASS
+            - name: MONGO_INITDB_DATABASE
+              value: {{ .Values.global.mongodb.database }}
+          resources:
+            {{- toYaml .Values.mongo.resources | nindent 12 }}
+          volumeMounts:
+            - name: mongodb-data
+              mountPath: /data/db
+            - name: mongodb-keyfile
+              mountPath: /etc/mongodb-keyfile
+              readOnly: true
+          livenessProbe:
+            exec:
+              command: ["mongosh", "--eval", "db.adminCommand('ping')", "--quiet"]
+            initialDelaySeconds: {{ .Values.mongo.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.mongo.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.mongo.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.mongo.probes.liveness.failureThreshold }}
+          readinessProbe:
+            exec:
+              command: ["mongosh", "--eval", "db.adminCommand('ping')", "--quiet"]
+            initialDelaySeconds: {{ .Values.mongo.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.mongo.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.mongo.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.mongo.probes.readiness.failureThreshold }}
+          securityContext:
+            runAsUser: 999
+            runAsGroup: 999
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: mongodb-keyfile
+          secret:
+            secretName: mongodb-keyfile
+            defaultMode: 0400
+  volumeClaimTemplates:
+    - metadata:
+        name: mongodb-data
+        labels:
+          app: mongodb
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: {{ .Values.mongo.storage.storageClassName }}
+        resources:
+          requests:
+            storage: {{ .Values.mongo.storage.size }}

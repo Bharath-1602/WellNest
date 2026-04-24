@@ -1,0 +1,8 @@
+# Namespace for the selected environment
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ include "wellnest.namespace" . }}
+  labels:
+    {{- include "wellnest.labels" . | nindent 4 }}
+    project: wellnest

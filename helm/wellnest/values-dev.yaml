@@ -1,0 +1,64 @@
+# Dev environment overrides — merged on top of values.yaml
+global:
+  namespace: wellnest-dev
+  environment: dev
+  urls:
+    frontend: http://wellnest-dev.local
+
+auth:
+  replicaCount: 1
+  image:
+    tag: dev
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+
+assessment:
+  replicaCount: 1
+  image:
+    tag: dev
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+
+therapist:
+  replicaCount: 1
+  image:
+    tag: dev
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+
+frontend:
+  replicaCount: 1
+  image:
+    tag: dev
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+  hpa:
+    minReplicas: 1
+    maxReplicas: 3
+
+mongo:
+  storage:
+    size: 2Gi
+
+gateway:
+  hostname: wellnest-dev.local

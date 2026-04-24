@@ -1,0 +1,64 @@
+# Prod environment overrides — merged on top of values.yaml
+global:
+  namespace: wellnest-prod
+  environment: prod
+  urls:
+    frontend: http://wellnest-prod.local
+
+auth:
+  replicaCount: 2
+  image:
+    tag: latest
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+assessment:
+  replicaCount: 2
+  image:
+    tag: latest
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+therapist:
+  replicaCount: 2
+  image:
+    tag: latest
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+frontend:
+  replicaCount: 2
+  image:
+    tag: latest
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 400m
+      memory: 256Mi
+  hpa:
+    minReplicas: 2
+    maxReplicas: 5
+
+mongo:
+  storage:
+    size: 5Gi
+
+gateway:
+  hostname: wellnest-prod.local

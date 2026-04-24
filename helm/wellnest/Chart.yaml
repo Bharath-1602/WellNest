@@ -1,0 +1,12 @@
+# WellNest Umbrella Helm Chart
+apiVersion: v2
+name: wellnest
+description: WellNest Mental Health Platform — Helm Umbrella Chart
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - wellnest
+  - mental-health
+maintainers:
+  - name: WellNest DevOps

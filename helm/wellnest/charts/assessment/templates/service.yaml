@@ -1,0 +1,18 @@
+# Assessment service ClusterIP
+apiVersion: v1
+kind: Service
+metadata:
+  name: assessment-service
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: assessment-service
+    {{- include "wellnest.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    app: assessment-service
+  ports:
+    - name: http
+      port: {{ .Values.global.services.assessment.port }}
+      targetPort: {{ .Values.global.services.assessment.port }}
+      protocol: TCP

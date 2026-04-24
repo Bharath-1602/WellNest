@@ -1,0 +1,32 @@
+# AnalysisTemplate — health check for blue-green preview
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: frontend-health-check
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: frontend
+    {{- include "wellnest.labels" . | nindent 4 }}
+spec:
+  metrics:
+    - name: health-check
+      interval: 10s
+      count: 3
+      successCondition: result == "ok"
+      failureLimit: 1
+      provider:
+        job:
+          spec:
+            template:
+              spec:
+                restartPolicy: Never
+                containers:
+                  - name: health-checker
+                    image: curlimages/curl:latest
+                    command:
+                      - sh
+                      - -c
+                      - |
+                        STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+                          http://frontend-preview.{{ .Values.global.namespace }}.svc.cluster.local:80)
+                        if [ "$STATUS" = "200" ]; then echo "ok"; else echo "fail"; exit 1; fi

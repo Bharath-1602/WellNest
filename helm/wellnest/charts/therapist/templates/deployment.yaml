@@ -1,0 +1,102 @@
+# Therapist service Deployment — adds AUTH_SERVICE_URL and ASSESSMENT_SERVICE_URL
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: therapist-service
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: therapist-service
+    {{- include "wellnest.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.therapist.replicaCount }}
+  selector:
+    matchLabels:
+      app: therapist-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: therapist-service
+        environment: {{ .Values.global.environment }}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: therapist-service
+          image: docker.io/{{ .Values.global.dockerUsername }}/{{ .Values.therapist.image.repository }}:{{ .Values.therapist.image.tag }}
+          imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.global.services.therapist.port }}
+              name: http
+              protocol: TCP
+          env:
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: wellnest-config
+                  key: THERAPIST_SERVICE_PORT
+            - name: NODE_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: wellnest-config
+                  key: NODE_ENV
+            - name: FRONTEND_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: wellnest-config
+                  key: FRONTEND_URL
+            - name: JWT_EXPIRY
+              valueFrom:
+                configMapKeyRef:
+                  name: wellnest-config
+                  key: JWT_EXPIRY
+            - name: AUTH_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: wellnest-config
+                  key: AUTH_SERVICE_URL
+            - name: ASSESSMENT_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: wellnest-config
+                  key: ASSESSMENT_SERVICE_URL
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: wellnest-secrets
+                  key: MONGODB_URI
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: wellnest-secrets
+                  key: JWT_SECRET
+          resources:
+            {{- toYaml .Values.therapist.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.global.services.therapist.port }}
+            initialDelaySeconds: {{ .Values.therapist.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.therapist.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.therapist.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.therapist.probes.liveness.failureThreshold }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.global.services.therapist.port }}
+            initialDelaySeconds: {{ .Values.therapist.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.therapist.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.therapist.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.therapist.probes.readiness.failureThreshold }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop: ["ALL"]

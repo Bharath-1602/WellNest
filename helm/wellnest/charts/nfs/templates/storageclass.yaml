@@ -1,0 +1,15 @@
+# NFS StorageClass — skip if nfs-client already exists
+{{- if .Values.nfs.enabled }}
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: {{ .Values.nfs.storageClassName }}
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: {{ .Values.nfs.provisioner }}
+parameters:
+  onDelete: "retain"
+  pathPattern: "${.PVC.namespace}/${.PVC.name}"
+reclaimPolicy: Retain
+volumeBindingMode: Immediate
+{{- end }}

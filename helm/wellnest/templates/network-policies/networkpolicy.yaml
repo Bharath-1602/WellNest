@@ -1,0 +1,82 @@
+# NetworkPolicy — matches existing k8s/network-policy structure
+{{- if .Values.networkPolicy.enabled }}
+---
+# Policy 1: MongoDB only accepts from backend services
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mongodb-ingress-policy
+  namespace: {{ include "wellnest.namespace" . }}
+  labels:
+    {{- include "wellnest.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app: mongodb
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: auth-service
+        - podSelector:
+            matchLabels:
+              app: assessment-service
+        - podSelector:
+            matchLabels:
+              app: therapist-service
+        - podSelector:
+            matchLabels:
+              app: mongodb
+        - podSelector:
+            matchLabels:
+              app: mongodb-init
+      ports:
+        - protocol: TCP
+          port: 27017
+---
+# Policy 2: Frontend CANNOT access MongoDB
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-deny-mongodb
+  namespace: {{ include "wellnest.namespace" . }}
+  labels:
+    {{- include "wellnest.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app: frontend
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: auth-service
+      ports:
+        - protocol: TCP
+          port: {{ .Values.global.services.auth.port }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app: assessment-service
+      ports:
+        - protocol: TCP
+          port: {{ .Values.global.services.assessment.port }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app: therapist-service
+      ports:
+        - protocol: TCP
+          port: {{ .Values.global.services.therapist.port }}
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+{{- end }}

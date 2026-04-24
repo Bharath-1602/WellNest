@@ -1,0 +1,6 @@
+apiVersion: v2
+name: mongo
+description: WellNest MongoDB StatefulSet — replica set rs0
+type: application
+version: 1.0.0
+appVersion: "7.0"
