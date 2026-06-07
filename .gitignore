@@ -12,3 +12,7 @@ coverage/
 .idea/
 *.swp
 *.swo
+.agents/
+
+
+*.md
